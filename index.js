@@ -120,7 +120,16 @@ ${essayText}
   } catch (error) {
     // --- กรณีเกิดข้อผิดพลาด ---
     console.error('Error processing request:', error);
-    // ส่ง error กลับไปให้ frontend แสดงผล
-    res.status(500).json({ error: 'An internal error occurred. Please try again.' });
+    
+    // --- ‼️ เพิ่ม 3 บรรทัดนี้เข้ามา ---
+    // ‼️ เปลี่ยน 'YOUR-GITHUB-USERNAME' เป็นชื่อ GitHub ของคุณ
+    res.set('Access-Control-Allow-Origin', 'https://YOUR-GITHUB-USERNAME.github.io');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    // --- จบส่วนที่เพิ่ม ---
+
+    // ส่ง error ที่แท้จริง (ถ้ามี) กลับไปให้ frontend แสดงผล
+    const errorMessage = error.message || 'An internal error occurred. Please try again.';
+    res.status(500).json({ error: errorMessage });
   }
 });
