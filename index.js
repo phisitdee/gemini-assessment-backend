@@ -84,7 +84,6 @@ ${essayText}
     // 3. Create the content payload to send to Gemini
     const contents = {
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
     };
 
     // 4. Send the request to Gemini (without the problematic responseSchema)
