@@ -1,96 +1,108 @@
 const functions = require('@google-cloud/functions-framework');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// ดึง API Key มาจาก Environment Variable ที่เราจะตั้งค่าใน Google Cloud
-// วิธีนี้ทำให้ API Key ไม่ได้อยู่ในโค้ดของเราโดยตรง ปลอดภัย 100%
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// --- นี่คือ "กุญแจ API" ที่เราซ่อนไว้ครับ ---
+// มันจะถูกดึงมาจาก Environment Variable ที่เราตั้งค่าไว้ใน Google Cloud
+// We use process.env.GEMINI_API_KEY to access the secret key
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// ตรวจสอบว่ามี API Key หรือไม่
-if (!GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY is not set.");
-}
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
-
-// กำหนดให้ฟังก์ชันนี้ทำงานเมื่อมีการเรียกผ่าน HTTP
+// --- นี่คือ "ฟังก์ชัน" ของเรา (ที่เราตั้งชื่อว่า assessEssay) ---
+// This is our main function, named 'assessEssay'
 functions.http('assessEssay', async (req, res) => {
-    // ตั้งค่า CORS Headers เพื่อให้เว็บไซต์ของเรา (Frontend) สามารถเรียกฟังก์ชันนี้ได้
-    res.set('Access-Control-Allow-Origin', '*'); // ในใช้งานจริง ควรระบุโดเมนของคุณแทน '*'
-    res.set('Access-Control-Allow-Methods', 'POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // --- การตั้งค่า CORS (สำคัญมาก!) ---
+  // This allows our GitHub Pages frontend to talk to this backend
+  res.set('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
 
-    // จัดการ preflight request สำหรับ CORS
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
+  // Respond to preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+  // --- จบส่วน CORS ---
+
+  try {
+    // Get the data sent from the frontend
+    const { essayText, action, feedbackForRewrite } = req.body;
+
+    // --- นี่คือโค้ดที่ "แก้ไข" แล้ว ---
+    // This is the corrected code
+    
+    // 1. Select the model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+    
+    let systemPrompt = "";
+    let userPrompt = "";
+
+    // 2. Create the correct prompt based on the "action"
+    if (action === 'rewrite') {
+        // --- Task: Rewrite ---
+        systemPrompt = `You are an expert English editor. A student has written an essay and received feedback. 
+Your task is to rewrite the student's original essay based *only* on the provided feedback.
+You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
+The JSON object must have this exact structure:
+{
+  "rewrittenText": "<the complete rewritten essay text>"
+}`;
+        userPrompt = `Original Essay:
+"""
+${essayText}
+"""
+
+Feedback to apply:
+"""
+${feedbackForRewrite}
+"""
+
+Please rewrite the original essay based on this feedback.`;
+
+    } else {
+        // --- Task: Assess ---
+        systemPrompt = `You are an expert English teacher assessing a student's essay on "Sharing Experiences" using the Present Perfect Tense.
+The rubric criteria are:
+1.  **Structure** (1-5): Organization, flow, and coherence.
+2.  **Accuracy** (1-5): Correct use of Present Perfect Tense and general grammar.
+3.  **Relevance** (1-5): Stays on topic and meets the word count (min. 100 words).
+You MUST provide scores as WHOLE NUMBERS (integers) only, from 1 to 5 for each category.
+You MUST provide constructive feedback as a single string, with key points separated by asterisks (*).
+
+You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
+The JSON object must have this exact structure:
+{
+  "structureScore": <score_integer>,
+  "accuracyScore": <score_integer>,
+  "relevanceScore": <score_integer>,
+  "feedback": "<feedback_string_with_asterisks>"
+}`;
+        userPrompt = `Please assess this essay:
+"""
+${essayText}
+"""`;
     }
+    
+    // 3. Create the content payload to send to Gemini
+    const contents = {
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+    };
 
-    // --- ส่วนตรรกะหลักของ Backend ---
-    try {
-        const { essayText, action, feedbackForRewrite } = req.body;
+    // 4. Send the request to Gemini (without the problematic responseSchema)
+    const result = await model.generateContent(contents);
+    const textResponse = result.response.text();
+    
+    // 5. Parse the text response into a JSON object
+    // We trust the AI to return valid JSON because we instructed it in the systemPrompt
+    const jsonResponse = JSON.parse(textResponse);
 
-        if (!essayText) {
-            return res.status(400).json({ error: "Essay text is required." });
-        }
-        
-        let result;
-        if (action === 'assess') {
-             // สร้าง Prompt สำหรับการประเมิน
-            const systemPrompt = `You are an expert English teacher assessing a student's writing.
-            The topic is "sharing experiences" and the student must use the Present Perfect Tense.
-            Evaluate the essay based on the following rubric, providing scores as whole numbers (integers) only, from 1 to 5 for each category:
-            1. **Structure** 2. **Accuracy** 3. **Relevance**
-            Provide assessment in a strict JSON format with keys: "structureScore", "accuracyScore", "relevanceScore", "totalScore", and "feedback".
-            All scores MUST be whole numbers.`;
+    // 6. Send the valid JSON response back to the frontend
+    res.status(200).json(jsonResponse);
 
-            const prompt = `${systemPrompt}\n\nStudent Essay:\n${essayText}`;
-            
-            const generationConfig = {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        "structureScore": { "type": "NUMBER" },
-                        "accuracyScore": { "type": "NUMBER" },
-                        "relevanceScore": { "type": "NUMBER" },
-                        "totalScore": { "type": "NUMBER" },
-                        "feedback": { "type": "STRING" }
-                    },
-                    required: ["structureScore", "accuracyScore", "relevanceScore", "totalScore", "feedback"]
-                }
-            };
-
-            const chat = model.startChat({ generationConfig });
-            const apiResult = await chat.sendMessage(prompt);
-            const responseText = await apiResult.response.text();
-            
-            // แปลงข้อความ JSON ที่ได้จาก API เป็น Object
-            const parsedData = JSON.parse(responseText);
-             // คำนวณคะแนนรวมใหม่เพื่อความแน่นอน
-            parsedData.totalScore = (parsedData.structureScore || 0) + (parsedData.accuracyScore || 0) + (parsedData.relevanceScore || 0);
-            result = parsedData;
-
-        } else if (action === 'rewrite') {
-            // สร้าง Prompt สำหรับการเขียนใหม่
-            const systemPrompt = `You are an expert English teacher. Rewrite the following essay based on the provided feedback to improve it.
-            Maintain the student's original voice. Focus on corrections mentioned in the feedback.
-            Do not add any commentary. Just provide the rewritten essay text.`;
-
-            const prompt = `${systemPrompt}\n\nOriginal Essay:\n${essayText}\n\nFeedback:\n${feedbackForRewrite}`;
-            const apiResult = await model.generateContent(prompt);
-            const rewrittenText = await apiResult.response.text();
-            result = { rewrittenText: rewrittenText };
-
-        } else {
-             return res.status(400).json({ error: "Invalid action specified." });
-        }
-
-        // ส่งผลลัพธ์กลับไปให้ Frontend
-        res.status(200).json(result);
-
-    } catch (error) {
-        console.error("Error processing request:", error);
-        res.status(500).json({ error: "An internal error occurred." });
-    }
+  } catch (error) {
+    // --- If anything crashes ---
+    // (e.g., AI response isn't JSON, API key is wrong, Gemini API not enabled)
+    console.error('Error processing request:', error);
+    // Send a generic error back to the frontend to display the red error box
+    res.status(500).json({ error: 'An internal error occurred.' });
+  }
 });
