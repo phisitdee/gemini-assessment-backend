@@ -80,15 +80,13 @@ The JSON object must have this exact structure:
 ${essayText}
 """`;
     }
-    
-    // 3. Create the content payload to send to Gemini
-    const contents = {
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    // 3. Combine prompts (because systemInstruction is buggy)
+const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
     };
 
-    // 4. Send the request to Gemini (without the problematic responseSchema)
-    const result = await model.generateContent(contents);
-    const textResponse = result.response.text();
+    // 4. Send the request to Gemini (as a single combined prompt)
+const result = await model.generateContent(combinedPrompt);
+const textResponse = result.response.text();
     
     // 5. Parse the text response into a JSON object
     // We trust the AI to return valid JSON because we instructed it in the systemPrompt
