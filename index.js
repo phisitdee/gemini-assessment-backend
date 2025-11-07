@@ -45,7 +45,7 @@ functions.http('assessEssay', async (req, res) => {
   // --- 🔒 การตั้งค่า CORS (สำคัญมาก!) ---
   // ‼️ เปลี่ยน 'YOUR-GITHUB-USERNAME' เป็นชื่อ GitHub ของคุณ
   // นี่คือการจำกัดให้เฉพาะหน้าเว็บ GitHub Pages ของคุณเท่านั้นที่เรียกใช้ฟังก์ชันนี้ได้
-  res.set('Access-Control-Allow-Origin', 'https://YOUR-GITHUB-USERNAME.github.io');
+  res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
   // หากทดสอบบน Localhost ให้ใช้บรรทัดนี้แทน (และปิดบรรทัดบน)
   // res.set('Access-Control-Allow-Origin', 'http://127.0.0.1:5500'); 
 
@@ -117,13 +117,13 @@ ${essayText}
     // 5. ส่ง JSON กลับไปที่ frontend
     res.status(200).json(jsonResponse);
 
-  } catch (error) {
+} catch (error) {
     // --- กรณีเกิดข้อผิดพลาด ---
     console.error('Error processing request:', error);
     
-    // --- ‼️ เพิ่ม 3 บรรทัดนี้เข้ามา ---
-    // ‼️ เปลี่ยน 'YOUR-GITHUB-USERNAME' เป็นชื่อ GitHub ของคุณ
-    res.set('Access-Control-Allow-Origin', 'https://YOUR-GITHUB-USERNAME.github.io');
+    // --- ‼️ นี่คือ 3 บรรทัดที่ต้องมี ‼️ ---
+    // (ผมใส่ username 'phisitdee' ให้คุณแล้ว)
+    res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
     // --- จบส่วนที่เพิ่ม ---
