@@ -30,7 +30,7 @@ Your task is to rewrite the student's original essay based *only* on the provide
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
 The JSON object must have this exact structure:
 {
-  "rewrittenText": "<the complete rewritten essay text>"
+  "rewrittenText": "<the complete rewritten text>"
 }`;
 
 
