@@ -4,11 +4,47 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- กุญแจ API ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// --- ฟังก์ชันหลัก 'assessEssay' (เวอร์ชันดีบัก) ---
+// --- ‼️ นี่คือชื่อโมเดลที่อัปเดตแล้ว ‼️ ---
+// เราจะใช้ "gemini-1.5-flash-latest" ซึ่งเป็นโมเดลที่ library v0.10.0 ควรรู้จัก
+const modelName = "gemini-1.5-flash-latest"; 
+
+// --- การตั้งค่าโมเดล ---
+const assessModelConfig = {
+  model: modelName,
+  systemInstruction: `You are an expert English teacher assessing a student's essay on "Sharing Experiences" using the Present Perfect Tense.
+The rubric criteria are:
+1.  **Structure** (1-5): Organization, flow, and coherence.
+2.  **Accuracy** (1-5): Correct use of Present Perfect Tense and general grammar.
+3.  **Relevance** (1-5): Stays on topic and meets the word count (min. 100 words).
+You MUST provide scores as WHOLE NUMBERS (integers) only, from 1 to 5 for each category.
+You MUST provide constructive feedback as a single string, with key points separated by asterisks (*).
+
+You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
+The JSON object must have this exact structure:
+{
+  "structureScore": <score_integer>,
+  "accuracyScore": <score_integer>,
+  "relevanceScore": <score_integer>,
+  "feedback": "<feedback_string_with_asterisks>"
+}`,
+};
+
+const rewriteModelConfig = {
+  model: modelName,
+  systemInstruction: `You are an expert English editor. A student has written an essay and received feedback.
+Your task is to rewrite the student's original essay based *only* on the provided feedback.
+You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
+The JSON object must have this exact structure:
+{
+  "rewrittenText": "<the complete rewritten essay text>"
+}`,
+};
+
+
+// --- ฟังก์ชันหลัก 'assessEssay' ---
 functions.http('assessEssay', async (req, res) => {
   
-  // --- 🔒 การตั้งค่า CORS (สำคัญมาก!) ---
-  // (ผมใส่ username 'phisitdee' ให้คุณแล้ว)
+  // --- 🔒 การตั้งค่า CORS ---
   res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -20,41 +56,69 @@ functions.http('assessEssay', async (req, res) => {
   // --- จบส่วน CORS ---
 
   try {
-    // --- ‼️ นี่คือโค้ดใหม่สำหรับตรวจสอบโมเดล ‼️ ---
-    console.log('Attempting to list models...');
-    
-    // 1. เรียก API เพื่อขอดูโมเดลทั้งหมด
-    const modelList = await genAI.listModels();
-    
-    // 2. ดึงเฉพาะ "ชื่อ" ของโมเดลที่รองรับ "generateContent"
-    const availableModels = [];
-    for await (const model of modelList) {
-      if (model.methods.includes('generateContent')) {
-        availableModels.push(model.name);
-      }
+    // 1. ดึงข้อมูลจาก frontend
+    const { essayText, action, feedbackForRewrite } = req.body;
+
+    // --- 🛡️ การตรวจสอบข้อมูล (Input Validation) ---
+    if (!essayText || essayText.trim() === '') {
+        return res.status(400).json({ error: 'Essay text is required.' });
     }
+    if (essayText.length > 10000) { 
+        return res.status(400).json({ error: 'Essay text is too long (max 10,000 chars).' });
+    }
+    if (action === 'rewrite' && (!feedbackForRewrite || feedbackForRewrite.trim() === '')) {
+        return res.status(400).json({ error: 'Feedback is required for rewrite action.' });
+    }
+    // --- จบส่วนการตรวจสอบ ---
 
-    // 3. แสดงผลใน Log (สำคัญที่สุด)
-    console.log('--- AVAILABLE MODELS (that support generateContent) ---');
-    console.log(availableModels);
-    console.log('-----------------------------------------------------');
+    let model;
+    let userPrompt = "";
 
-    // 4. ส่งรายชื่อกลับไปที่ Frontend (เผื่อไว้)
-    res.status(200).json({ 
-        message: "Successfully listed models. Check Cloud Run LOGS.",
-        availableModels: availableModels 
-    });
+    // 2. เลือกโมเดลและสร้าง Prompt ตาม 'action'
+    if (action === 'rewrite') {
+        model = genAI.getGenerativeModel(rewriteModelConfig);
+        userPrompt = `Original Essay:
+"""
+${essayText}
+"""
+
+Feedback to apply:
+"""
+${feedbackForRewrite}
+"""
+
+Please rewrite the original essay based on this feedback.`;
+
+    } else {
+        model = genAI.getGenerativeModel(assessModelConfig);
+        userPrompt = `Please assess this essay:
+"""
+${essayText}
+"""`;
+    }
+    
+    // 3. ส่งคำขอไปที่ Gemini
+    const result = await model.generateContent(userPrompt);
+    const textResponse = result.response.text();
+    
+    // 4. ทำความสะอาดและ Parse การตอบกลับ
+    let cleanTextResponse = textResponse.replace(/^```json\s*/, '').replace(/```$/, '');
+    
+    const jsonResponse = JSON.parse(cleanTextResponse);
+
+    // 5. ส่ง JSON กลับไปที่ frontend
+    res.status(200).json(jsonResponse);
 
   } catch (error) {
     // --- กรณีเกิดข้อผิดพลาด ---
-    console.error('Error listing models:', error);
+    console.error('Error processing request:', error);
     
     // ตั้งค่า CORS สำหรับ Error ด้วย
     res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
 
-    const errorMessage = error.message || 'An internal error occurred.';
-    res.status(500).json({ error: `Error listing models: ${errorMessage}` });
+    const errorMessage = error.message || 'An internal error occurred. Please try again.';
+    res.status(500).json({ error: errorMessage });
   }
 });
