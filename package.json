@@ -1,10 +1,9 @@
 {
-          "name": "gemini-assessment-function",
-          "version": "1.0.0",
-          "description": "Cloud Function to assess writing using Gemini API",
-          "main": "index.js",
-          "dependencies": {
-            "@google-cloud/functions-framework": "^3.0.0",
-            "@google/generative-ai": "^latest"
-          }
-        }
+  "name": "gemini-assessment-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "@google/generative-ai": "^0.10.0"
+  }
+}
