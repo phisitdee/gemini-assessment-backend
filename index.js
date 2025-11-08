@@ -4,13 +4,11 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- กุญแจ API ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Library v0.7.0 ‼️ ---
+// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้อง และเราจะไม่ใช้ systemInstruction ‼️ ---
 const modelName = "gemini-1.0-pro"; 
 
-// --- การตั้งค่าโมเดล ---
-const assessModelConfig = {
-  model: modelName,
-  systemInstruction: `You are an expert English teacher assessing a student's essay on "Sharing Experiences" using the Present Perfect Tense.
+// --- คำสั่งระบบ (เราจะเก็บไว้ในตัวแปรธรรมดา) ---
+const assessSystemPrompt = `You are an expert English teacher assessing a student's essay on "Sharing Experiences" using the Present Perfect Tense.
 The rubric criteria are:
 1.  **Structure** (1-5): Organization, flow, and coherence.
 2.  **Accuracy** (1-5): Correct use of Present Perfect Tense and general grammar.
@@ -25,19 +23,15 @@ The JSON object must have this exact structure:
   "accuracyScore": <score_integer>,
   "relevanceScore": <score_integer>,
   "feedback": "<feedback_string_with_asterisks>"
-}`,
-};
+}`;
 
-const rewriteModelConfig = {
-  model: modelName,
-  systemInstruction: `You are an expert English editor. A student has written an essay and received feedback.
+const rewriteSystemPrompt = `You are an expert English editor. A student has written an essay and received feedback.
 Your task is to rewrite the student's original essay based *only* on the provided feedback.
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
 The JSON object must have this exact structure:
 {
   "rewrittenText": "<the complete rewritten essay text>"
-}`,
-};
+}`;
 
 
 // --- ฟังก์ชันหลัก 'assessEssay' ---
@@ -70,12 +64,16 @@ functions.http('assessEssay', async (req, res) => {
     }
     // --- จบส่วนการตรวจสอบ ---
 
-    let model;
-    let userPrompt = "";
+    // 2. เลือกโมเดล (โดยไม่มี systemInstruction)
+    const model = genAI.getGenerativeModel({ model: modelName });
 
-    // 2. เลือกโมเดลและสร้าง Prompt ตาม 'action'
+    let userPrompt = "";
+    let systemPrompt = "";
+    let combinedPrompt = ""; // เราจะรวมกันที่นี่
+
+    // 3. สร้าง Prompt ที่ถูกต้องตาม 'action'
     if (action === 'rewrite') {
-        model = genAI.getGenerativeModel(rewriteModelConfig);
+        systemPrompt = rewriteSystemPrompt;
         userPrompt = `Original Essay:
 """
 ${essayText}
@@ -89,23 +87,27 @@ ${feedbackForRewrite}
 Please rewrite the original essay based on this feedback.`;
 
     } else {
-        model = genAI.getGenerativeModel(assessModelConfig);
+        systemPrompt = assessSystemPrompt;
         userPrompt = `Please assess this essay:
 """
 ${essayText}
 """`;
     }
+
+    // 4. ‼️ นี่คือส่วนที่แก้ไข ‼️
+    // รวม system prompt และ user prompt เข้าด้วยกันเป็นสตริงเดียว
+    combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
     
-    // 3. ส่งคำขอไปที่ Gemini
-    const result = await model.generateContent(userPrompt);
+    // 5. ส่งคำขอไปที่ Gemini (ด้วย prompt ที่รวมแล้ว)
+    const result = await model.generateContent(combinedPrompt); 
     const textResponse = result.response.text();
     
-    // 4. ทำความสะอาดและ Parse การตอบกลับ
+    // 6. ทำความสะอาดและ Parse การตอบกลับ
     let cleanTextResponse = textResponse.replace(/^```json\s*/, '').replace(/```$/, '');
     
     const jsonResponse = JSON.parse(cleanTextResponse);
 
-    // 5. ส่ง JSON กลับไปที่ frontend
+    // 7. ส่ง JSON กลับไปที่ frontend
     res.status(200).json(jsonResponse);
 
   } catch (error) {
