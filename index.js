@@ -4,9 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- กุญแจ API ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// --- ‼️ นี่คือชื่อโมเดลที่อัปเดตแล้ว ‼️ ---
-// เราจะใช้ "gemini-1.5-flash-latest" ซึ่งเป็นโมเดลที่ library v0.10.0 ควรรู้จัก
-const modelName = "gemini-1.5-flash-latest"; 
+// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Library v0.7.0 ‼️ ---
+const modelName = "gemini-1.0-pro"; 
 
 // --- การตั้งค่าโมเดล ---
 const assessModelConfig = {
