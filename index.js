@@ -74,25 +74,11 @@ functions.http('assessEssay', async (req, res) => {
     // 3. สร้าง Prompt ที่ถูกต้องตาม 'action'
     if (action === 'rewrite') {
         systemPrompt = rewriteSystemPrompt;
-        userPrompt = `Original Essay:
-"""
-${essayText}
-"""
-
-Feedback to apply:
-"""
-${feedbackForRewrite}
-"""
-
-Please rewrite the original essay based on this feedback.`;
-
+        userPrompt = `Original Essay:\n"""\n${essayText}\n"""\n\nFeedback to apply:\n"""\n${feedbackForRewrite}\n"""\n\nPlease rewrite the original essay based on this feedback.`;
     } else {
         systemPrompt = assessSystemPrompt;
-        userPrompt = `Please assess this essay:
-"""
-${essayText}
-"""`;
-    }
+        userPrompt = `Please assess this essay:\n"""\n${essayText}\n"""`;
+  }
 
     // 4. ‼️ นี่คือส่วนที่ถูกต้อง ‼️
     // รวม system prompt และ user prompt เข้าด้วยกันเป็นสตริงเดียว
