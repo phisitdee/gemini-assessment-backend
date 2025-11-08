@@ -4,7 +4,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- กุญแจ API ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้อง และเราจะไม่ใช้ systemInstruction ‼️ ---
+// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Library v0.7.0 ‼️ ---
 const modelName = "gemini-1.0-pro"; 
 
 // --- คำสั่งระบบ (เราจะเก็บไว้ในตัวแปรธรรมดา) ---
@@ -94,7 +94,7 @@ ${essayText}
 """`;
     }
 
-    // 4. ‼️ นี่คือส่วนที่แก้ไข ‼️
+    // 4. ‼️ นี่คือส่วนที่ถูกต้อง ‼️
     // รวม system prompt และ user prompt เข้าด้วยกันเป็นสตริงเดียว
     combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
     
