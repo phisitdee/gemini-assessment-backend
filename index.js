@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // --- การตั้งค่าโมเดล ---
 // เราจะตั้งค่า systemInstruction แยกต่างหากสำหรับแต่ละ action
 const assessModelConfig = {
-  model: "gemini-pro",
+  model: "gemini-2.5 Flash",
   systemInstruction: `You are an expert English teacher assessing a student's essay on "Sharing Experiences" using the Present Perfect Tense.
 The rubric criteria are:
 1.  **Structure** (1-5): Organization, flow, and coherence.
@@ -28,7 +28,7 @@ The JSON object must have this exact structure:
 };
 
 const rewriteModelConfig = {
-  model: "gemini-pro",
+  model: "gemini-2.5 Flash",
   systemInstruction: `You are an expert English editor. A student has written an essay and received feedback.
 Your task is to rewrite the student's original essay based *only* on the provided feedback.
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
