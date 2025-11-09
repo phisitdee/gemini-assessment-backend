@@ -10,7 +10,7 @@ const vertex_ai = new VertexAI({
 });
 
 // --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Vertex AI ‼️ ---
-const modelName = "gemini-1.0-pro"; // (เรากลับไปใช้ 1.0-pro ที่เสถียรครับ)
+const modelName = "gemini-1.5-flash-latest"; // (เรากลับไปใช้ 1.0-pro ที่เสถียรครับ)
 
 // --- เลือกโมเดล (แบบ Vertex AI) ---
 const model = vertex_ai.getGenerativeModel({ model: modelName });
