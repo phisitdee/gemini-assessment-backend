@@ -4,8 +4,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- กุญแจ API ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Library v0.7.0 ‼️ ---
-const modelName = "gemini-1.0-pro"; 
+// --- ‼️ นี่คือชื่อโมเดลใหม่ ที่เรา "เดินหน้า" ‼️ ---
+const modelName = "gemini-1.5-pro-latest"; 
 
 // --- คำสั่งระบบ (เราจะเก็บไว้ในตัวแปรธรรมดา) ---
 const assessSystemPrompt = `You are an expert English teacher assessing a student's essay, which is a "Factual Recount".
@@ -41,7 +41,6 @@ The JSON object must have this exact structure:
   "feedback": "<feedback_string_with_asterisks>"
 }`;
 
-// (ตัวแปร rewriteSystemPrompt... ใช้เหมือนเดิม ไม่ต้องแก้)
 const rewriteSystemPrompt = `You are an expert English editor. A student has written an essay and received feedback.
 Your task is to rewrite the student's original essay based *only* on the provided feedback.
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
@@ -92,10 +91,11 @@ functions.http('assessEssay', async (req, res) => {
     if (action === 'rewrite') {
         systemPrompt = rewriteSystemPrompt;
         userPrompt = `Original Essay:\n"""\n${essayText}\n"""\n\nFeedback to apply:\n"""\n${feedbackForRewrite}\n"""\n\nPlease rewrite the original essay based on this feedback.`;
+
     } else {
         systemPrompt = assessSystemPrompt;
         userPrompt = `Please assess this essay:\n"""\n${essayText}\n"""`;
-  }
+    }
 
     // 4. ‼️ นี่คือส่วนที่ถูกต้อง ‼️
     // รวม system prompt และ user prompt เข้าด้วยกันเป็นสตริงเดียว
