@@ -2,23 +2,43 @@ const functions = require('@google-cloud/functions-framework');
 const { VertexAI } = require('@google-cloud/vertexai');
 
 // --- ‼️ ตั้งค่า Vertex AI (สำคัญมาก) ‼️ ---
-// เราต้องระบุ Project ID และ Location (ภูมิภาค)
-// มันจะดึงมาจาก Environment Variables ที่เราจะตั้งค่าใน Step 3
+// มันจะดึงมาจาก Environment Variable ที่เราตั้งค่าไว้
 const vertex_ai = new VertexAI({
   project: process.env.PROJECT_ID,
   location: process.env.LOCATION,
 });
 
-// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Vertex AI ‼️ ---
-const modelName = "gemini-1.5-flash-latest"; // (เรากลับไปใช้ 1.0-pro ที่เสถียรครับ)
+// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Vertex AI (ตามที่คุณแนะนำ) ‼️ ---
+const modelName = "gemini-2.5-flash";
 
 // --- เลือกโมเดล (แบบ Vertex AI) ---
 const model = vertex_ai.getGenerativeModel({ model: modelName });
 
-// --- คำสั่งระบบ (เหมือนเดิม) ---
+// --- คำสั่งระบบ (Rubric ใหม่ของคุณ) ---
 const assessSystemPrompt = `You are an expert English teacher assessing a student's essay, which is a "Factual Recount".
 Instructions: Evaluate the submission based on three traits: Content, Structure, and Language. Assign a score from 1 to 4 for each trait.
-(ฯลฯ ... ใส่ Rubric ทั้งหมดของคุณที่นี่ ... ฯลฯ)
+
+Trait 1: Content
+- Score 4: Event explicitly stated. Clearly documents events. Evaluate their significance. Personal comment on events.
+- Score 3: Event fairly clearly stated. Includes most events. Some evaluation of events. Some personal comment.
+- Score 2: Event only sketchy. Clearly documents events. Little or weak evaluation. Inadequate personal comment.
+- Score 1: Event not stated. No recognizable events. No or confused evaluation. No or weak personal comment.
+
+Trait 2: Structure
+- Score 4: Orientation gives all essential info. All necessary background provided. Account in chronological/other order. Reorientation "rounds off" sequence.
+- Score 3: Fairly well-developed orientation. Most factors and events mentioned. Largely chronological and coherent. Reorientation "rounds off" sequence.
+- Score 2: Orientation gives some information. Some necessary background omitted. Account partly coherent. Some attempt to provide reorientation.
+- Score 1: Missing or weak orientation. No background provided. Haphazard and incoherent sequencing. No reorientation or includes new matter.
+
+Trait 3: Language
+- Score 4: Excellent control of language. Excellent use of vocabulary. Excellent choice of grammar. Appropriate tone and style.
+- Score 3: Good control of language. Adequate vocab choices. Varied choice of grammar. Mainly appropriate tone.
+- Score 2: Inconsistent language control. Lack of variety in choice of grammar and vocabulary. Inconsistent tone and style.
+- Score 1: Little language control. Reader seriously distracted by grammar errors. Poor vocabulary and tone.
+
+You MUST provide scores as WHOLE NUMBERS (integers) only, from 1 to 4 for each category.
+You MUST provide constructive feedback as a single string, with key points separated by asterisks (*).
+
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
 The JSON object must have this exact structure:
 {
@@ -29,7 +49,9 @@ The JSON object must have this exact structure:
 }`;
 
 const rewriteSystemPrompt = `You are an expert English editor. A student has written an essay and received feedback.
-(ฯลฯ ... ใส่ Prompt ของ Rewrite ที่นี่ ... ฯลฯ)
+Your task is to rewrite the student's original essay based *only* on the provided feedback.
+You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
+The JSON object must have this exact structure:
 {
   "rewrittenText": "<the complete rewritten essay text>"
 }`;
