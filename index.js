@@ -2,13 +2,12 @@ const functions = require('@google-cloud/functions-framework');
 const { VertexAI } = require('@google-cloud/vertexai');
 
 // --- ‼️ ตั้งค่า Vertex AI (สำคัญมาก) ‼️ ---
-// มันจะดึงมาจาก Environment Variable ที่เราตั้งค่าไว้
 const vertex_ai = new VertexAI({
-  project: process.env.PROJECT_ID,
-  location: process.env.LOCATION,
+  project: process.env.PROJECT_ID,
+  location: process.env.LOCATION,
 });
 
-// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Vertex AI (ตามที่คุณแนะนำ) ‼️ ---
+// --- ‼️ นี่คือชื่อโมเดลที่ถูกต้องสำหรับ Vertex AI ‼️ ---
 const modelName = "gemini-2.5-flash";
 
 // --- เลือกโมเดล (แบบ Vertex AI) ---
@@ -42,10 +41,10 @@ You MUST provide constructive feedback as a single string, with key points separ
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
 The JSON object must have this exact structure:
 {
-  "contentScore": <score_integer>,
-  "structureScore": <score_integer>,
-  "languageScore": <score_integer>,
-  "feedback": "<feedback_string_with_asterisks>"
+  "contentScore": <score_integer>,
+  "structureScore": <score_integer>,
+  "languageScore": <score_integer>,
+  "feedback": "<feedback_string_with_asterisks>"
 }`;
 
 const rewriteSystemPrompt = `You are an expert English editor. A student has written an essay and received feedback.
@@ -53,15 +52,15 @@ Your task is to rewrite the student's original essay based *only* on the provide
 You MUST respond ONLY with a valid JSON object. Do not include "\`\`\`json" or any other text before or after the JSON object.
 The JSON object must have this exact structure:
 {
-  "rewrittenText": "<the complete rewritten essay text>"
+  "rewrittenText": "<the complete rewritten essay text>"
 }`;
 
 
 // --- ฟังก์ชันหลัก 'assessEssay' ---
 functions.http('assessEssay', async (req, res) => {
   
-  // --- 🔒 การตั้งค่า CORS ---
-  res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
+  // --- 🔒 ‼️ แก้ไข CORS (สำคัญมาก!) ‼️ ---
+  res.set('Access-Control-Allow-Origin', 'https://easyessay.site');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -119,10 +118,11 @@ functions.http('assessEssay', async (req, res) => {
   } catch (error) {
     // --- กรณีเกิดข้อผิดพลาด ---
     console.error('Error processing request:', error);
-    res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    const errorMessage = error.message || 'An internal error occurred.';
+    // --- 🔒 ‼️ แก้ไข CORS (สำคัญมาก!) ‼️ ---
+    res.set('Access-Control-Allow-Origin', 'https://easyessay.site');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    const errorMessage = error.message || 'An internal error occurred.';
     res.status(500).json({ error: errorMessage });
   }
 });
