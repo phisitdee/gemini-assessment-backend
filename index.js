@@ -1,7 +1,6 @@
 const functions = require('@google-cloud/functions-framework');
 const { VertexAI } = require('@google-cloud/vertexai');
 
-// --- ‼️ ตั้งค่า Vertex AI (สำคัญมาก) ‼️ ---
 const vertex_ai = new VertexAI({
   project: process.env.PROJECT_ID,
   location: process.env.LOCATION,
