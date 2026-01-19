@@ -8,7 +8,7 @@ const vertex_ai = new VertexAI({
 });
 
 // ใช้โมเดล 2.5 Flash เพื่อความเร็วและความแม่นยำ
-const modelName = "gemini-1.5-flash";
+const modelName = "gemini-2.5-flash";
 const model = vertex_ai.getGenerativeModel({ model: modelName });
 
 // --- ‼️ เกณฑ์การให้คะแนนใหม่ (Cause & Effect Paragraph) ‼️ ---
