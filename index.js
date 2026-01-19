@@ -68,7 +68,7 @@ Respond ONLY with JSON: { "rewrittenText": "<text>" }`;
 
 functions.http('assessEssay', async (req, res) => {
   // CORS Setup
-  res.set('Access-Control-Allow-Origin', 'https://phisitdee.github.io');
+  res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).send('');
