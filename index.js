@@ -94,6 +94,10 @@ functions.http('assessEssay', async (req, res) => {
 
     const request = {
         contents: [{ role: 'user', parts: [{ text: combinedPrompt }] }],
+        generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+        }
     };
 
     const result = await model.generateContent(request); 
